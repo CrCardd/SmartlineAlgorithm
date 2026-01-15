@@ -1,196 +1,110 @@
+using Alg.Models;
 
-string path = "./database";
-
-const float OEE = 0.85f;
-const int shifts = 3;
-const int hour_shifts = 8;
-const int sides = 2;
-const float hoursPerShiftReal = hour_shifts * OEE;
-
-
-List<Product> GetProducts()
+public static class Algorithm
 {
-    string[] lines = File.ReadAllLines(path + "/Product.csv");
-    List<Product> products = [];
+    public const float OEE = 0.85f;
+    public const int SHIFTS = 3;
+    public const int HOUR_PER_SHIFT = 8;
+    public const int CORES_PER_CELL = 2;
+    public const float HOURS_PER_SHIFT_OEE = HOUR_PER_SHIFT * OEE;
 
-    foreach (var lin in lines)
+
+    public static List<Day> solver(List<Demand> demands, List<Cell> cells)
     {
-        var items = lin.Split(";");
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var lenght = (demands.OrderByDescending(d => d.Date).FirstOrDefault()?.Date.DayNumber ?? today.DayNumber) - today.DayNumber;
+        DateOnly crrDate = today.AddDays(1);
+        List<Day> Schedule = [];
 
-        int id = int.Parse(items[0]);
-        string name = items[1];
-        int shop = int.Parse(items[2]);
-        int time = int.Parse(items[3]);
-
-        products.Add(
-            new(id, name, time, shop)
-        );
-    }
-    return products;
-}
-List<Demand> GetDemands()
-{
-    string[] lines = File.ReadAllLines(path + "/Demand.csv");
-    List<Demand> demands = [];
-
-    foreach (var lin in lines)
-    {
-        var items = lin.Split(";");
-
-        int id = int.Parse(items[0]);
-        int productId = int.Parse(items[1]);
-
-
-        var d = items[2].Split("/");
-        int day = int.Parse(d[0]);
-        int month = int.Parse(d[1]);
-        int year = int.Parse(d[2]);
-        DateOnly date = new(year, month, day);
-
-        int qnt = int.Parse(items[3]);
-
-        Product? product = GetProducts().Where(p => p.Id == productId).FirstOrDefault();
-
-        if (product == null)
-            continue;
-
-        demands.Add(new Demand(id, product, date, qnt));
-    }
-    return demands;
-}
-List<Cell> GetMachines()
-{
-    string[] lines = File.ReadAllLines(path + "/Cell.csv");
-    List<Cell> machines = [];
-
-    foreach (var lin in lines)
-    {
-        var items = lin.Split(";");
-
-        int id = int.Parse(items[0]);
-        string name = items[1];
-
-        machines.Add(
-            new(id, name, null)
-        );
-    }
-    return machines;
-}
-
-List<Demand> Demands = GetDemands();
-List<Product> Products = GetProducts();
-List<Cell> Machines = GetMachines();
-
-var today = DateOnly.FromDateTime(DateTime.Today);
-
-var demands = Demands
-    .Select(d =>
+        //LOOP - (DIAS ATÉ O ÚLTIMO PRAZO)
+        for (int i = 0; i < lenght; i++)
         {
-            d.Quantity -= d.Product.Shop;
-            return d;
-        }
-    )
-    .Where(d => d.Quantity > 0)
-    .ToList();
 
-var lenght = (Demands.OrderByDescending(d => d.Date).FirstOrDefault()?.Date.DayNumber ?? today.DayNumber) - today.DayNumber;
-List<Day> Configuration = [];
+            //---------------------LOG-
+            Console.WriteLine("\n" + new string('-', 5 + cells.Count * 20) + "\n" + crrDate);
+            //---------------------LOG-
+            List<List<Cell>> setups = [];
 
-//---------------------------------------------------------------------------------------------------------
-Console.WriteLine($"{"PRODUTO",-10} | {"PRAZO",-10} | {"MAQ. NECESSÁRIAS",-18} | {"OBJETIVO",-8} | {"TEMPO PROD.",-15}");
-Console.WriteLine(new string('-', 70));
-//---------------------------------------------------------------------------------------------------------
-foreach (var demand in demands)
-{
-    float hoursNeeded = demand.Quantity * demand.Product.Time / 60.0f;
-    float sidesNeeded = hoursNeeded / hoursPerShiftReal;
-    if (sidesNeeded - (int)sidesNeeded > 0)
-        sidesNeeded = (int)sidesNeeded + 1;
-    Console.WriteLine($"{demand.Product.Name,-10} | {demand.Date,-10} | {sidesNeeded,-18:F2} | {demand.Quantity,-8} | {demand.Product.Time,-15}");
-}
-
-
-// /*
-DateOnly crrDate = today.AddDays(1);
-List<Day> Schedule = [];
-for (int i = 0; i < lenght; i++)
-{
-    
-    //---------------------
-    Console.WriteLine("\n"+ new string('-', 5+Machines.Count*20)+"\n" + crrDate);
-    //---------------------
-    List<List<Cell>> setups = [];
-    for (int j = 0; j < shifts; j++)
-    {
-        //---------------------
-        Console.Write((j + 1) + "° | ");
-        //---------------------
-
-        List<Cell> shiftSetup = [];
-
-        var greedy = demands
-            .Where(d => d.Quantity > 0)
-            .OrderBy(d =>
-                {
-                    float available = (d.Date.DayNumber - crrDate.DayNumber) * (shifts - j);
-                    float needed = d.Quantity * d.Product.Time / 60.0f / shifts;
-                    return (float)(available / needed);
-                }
-            )
-        .ToList();
-
-        var it = greedy.GetEnumerator();
-        while (it.MoveNext() && it.Current.Quantity <= 0) ;
-
-        for (int k = 0; k < Machines.Count; k++)
-        {
-            Cell m = Machines[k];
-
-            //---------------------
-            Console.Write($"{"[" + m.Name + "] -> ",-10}");
-            //---------------------
-
-            List<Product> products = [];
-            string str = "";
-            for (int l = 0; l < sides; l++)
+            //LOOP - (TURNOS DURANTE O DIA)
+            for (int j = 0; j < SHIFTS; j++)
             {
+                //---------------------LOG-
+                Console.Write((j + 1) + "° | ");
+                //---------------------LOG-
+
+                List<Cell> shiftSetup = [];
+
+                //ORDENA POR PRIORIDADE DAS DEMANDAS NESSE TURNO EM QUESTÃO
+                var greedy = demands
+                    .Where(d => d.Quantity > 0)
+                    .OrderBy(d =>
+                        {
+                            //CALCULA O "CRITICAL RATIO", QUANTO MENOR MAIS URGENTE, PORTANTO ORDENAMOS POR ELE
+                            float available = (d.Date.DayNumber - crrDate.DayNumber) * (SHIFTS - j);
+                            float needed = d.Quantity * d.Product.Time / 60.0f / SHIFTS;
+                            return (float)(available / needed);
+                        }
+                    )
+                .ToList();
+
+                //PEGA O ITERATOR PARA PODER AVANÇAR ENTRE AS DEMANDAS QUANDO ENCERRAR ALGUMA DURANTE O TURNO
+                var it = greedy.GetEnumerator();
+                while (it.MoveNext() && it.Current.Quantity <= 0) ; //PROCURA A PRIMEIRA DEMANDA VALIDA OU DEFAULT SE TIVER ACABADO
                 if (it.Current == null)
-                    break;
+                    return Schedule;        //SE DEFAULT, PORTANTO ACABOU AA DEMENDAS E ENCERRA O CALCULO
+                //LOOP - (CELULAS)
+                for (int k = 0; k < cells.Count; k++)
+                {
+                    //---------------------LOG-
+                    Cell c = cells[k];
+                    Console.Write($"{"[" + c.Name + "] -> ",-10}");
+                    string str = "";
+                    //--------------------LOG-
 
-                int produced = (int)(hoursPerShiftReal / (it.Current.Product.Time / 60.0f));
-                it.Current.Quantity -= produced;
-                products.Add(it.Current.Product);
+                    List<Product> products = [];
+                    Product product = it.Current.Product;
+                    //LOOP - (LADOS DE PRODUÇÃO)
+                    for (int l = 0; l < CORES_PER_CELL; l++)
+                    {
+                        //CALCULA QUANTAS PEÇAS VAO SER PRODUZIDAS DURANTE ESSE TURNO
+                        int produced = (int)(HOURS_PER_SHIFT_OEE / (it.Current.Product.Time / 60.0f));
+                        //SUBTRAI A PRODUÇÃO DA NECESSIDADE DA DEMANDA PARA O PROXIMO TURNO CONSIDERAR SÓ O QUE FALTA
+                        it.Current.Quantity -= produced;
+                        products.Add(it.Current.Product);
 
-                //---------------------
-                str += it.Current.Product.Name + " ";
-                //---------------------
+                        //--------------------LOG-
+                        str += it.Current.Product.Name + " ";
+                        //--------------------LOG-
 
-                if (it.Current.Quantity <= 0)
-                    it.MoveNext(); // SEGUE PRA PROXIMA PRIORIDADE
+                        //SE ACABOU A QUANTIDADE NECESSARIA DESSA DEMANDA AVANÇA PRA PRÓXIMA
+                        if (it.Current.Quantity <= 0)
+                        {
+                            it.MoveNext(); // SEGUE PRA PROXIMA PRIORIDADE
+                            if (it.Current == null) //VALIDA SE ACABOU AS DEMANDAS
+                                return Schedule;
+                        }
+                    }
+
+                    //--------------------LOG-
+                    Console.Write($"{str,-(CORES_PER_CELL * 2 + CORES_PER_CELL + 4)}");
+                    //--------------------LOG-
+                    Cell setup = new(c.Id, c.Name, products);
+                    shiftSetup.Add(setup);
+                }
+                setups.Add(shiftSetup);
+                //--------------------LOG-
+                Console.WriteLine();
+                //--------------------LOG-
             }
-
-            //---------------------
-            Console.Write($"{str,-(sides * 2 + sides + 4)}");
-            //---------------------
-            Cell setup = new Cell(m.Id, m.Name, products);
-            shiftSetup.Add(setup);
+            //--------------------LOG-
+            Console.Write("F  | ");
+            foreach (var d in demands)
+                Console.Write(d.Product.Name + ": " + d.Quantity + "    ");
+            //--------------------LOG-
+            Schedule.Add(new Day(crrDate, setups));
+            crrDate = crrDate.AddDays(1);
         }
-        setups.Add(shiftSetup);
-        //---------------------
-        Console.WriteLine();
-        //---------------------
+
+        return Schedule;
     }
-    //---------------------
-    Console.Write("F  | ");
-    foreach (var d in demands)
-    Console.Write(d.Product.Name + ": " + d.Quantity + "    ");
-    //---------------------
-    Schedule.Add(new Day(crrDate, setups));
-    crrDate = crrDate.AddDays(1);
 }
-// */
-
-
-Console.WriteLine($"\n\n{"PRODUTO",-10} | {"EXCEDENTE",-18}");
-foreach (var d in demands)
-    Console.WriteLine($"{d.Product.Name,-10} | {d.Quantity*-1,-18:F2}");
