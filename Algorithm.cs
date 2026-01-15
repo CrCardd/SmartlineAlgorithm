@@ -35,27 +35,40 @@ public static class Algorithm
 
                 List<Cell> shiftSetup = [];
 
-                //ORDENA POR PRIORIDADE DAS DEMANDAS NESSE TURNO EM QUESTÃO
-                var greedy = demands
-                    .Where(d => d.Quantity > 0)
-                    .OrderBy(d =>
-                        {
-                            //CALCULA O "CRITICAL RATIO", QUANTO MENOR MAIS URGENTE, PORTANTO ORDENAMOS POR ELE
-                            float available = (d.Date.DayNumber - crrDate.DayNumber) * (SHIFTS - j);
-                            float needed = d.Quantity * d.Product.Time / 60.0f / SHIFTS;
-                            return (float)(available / needed);
-                        }
-                    )
-                .ToList();
+                // //ORDENA POR PRIORIDADE DAS DEMANDAS NESSE TURNO EM QUESTÃO
+                // var greedy = demands
+                //     .Where(d => d.Quantity > 0)
+                //     .OrderBy(d =>
+                //         {
+                //             //CALCULA O "CRITICAL RATIO", QUANTO MENOR MAIS URGENTE, PORTANTO ORDENAMOS POR ELE
+                //             float available = (d.Date.DayNumber - crrDate.DayNumber) * (SHIFTS - j);
+                //             float needed = d.Quantity * d.Product.Time / 60.0f / SHIFTS;
+                //             return (float)(available / needed);
+                //         }
+                //     )
+                // .ToList();
 
-                //PEGA O ITERATOR PARA PODER AVANÇAR ENTRE AS DEMANDAS QUANDO ENCERRAR ALGUMA DURANTE O TURNO
-                var it = greedy.GetEnumerator();
-                while (it.MoveNext() && it.Current.Quantity <= 0) ; //PROCURA A PRIMEIRA DEMANDA VALIDA OU DEFAULT SE TIVER ACABADO
-                if (it.Current == null)
-                    return Schedule;        //SE DEFAULT, PORTANTO ACABOU AA DEMENDAS E ENCERRA O CALCULO
+                // if (!greedy.Any())
+                //     return Schedule;
+
                 //LOOP - (CELULAS)
                 for (int k = 0; k < cells.Count; k++)
                 {
+                    //ORDENA POR PRIORIDADE DAS DEMANDAS NESSE TURNO EM QUESTÃO
+                    var greedy = demands
+                        .Where(d => d.Quantity > 0)
+                        .OrderBy(d =>
+                            {
+                                //CALCULA O "CRITICAL RATIO", QUANTO MENOR MAIS URGENTE, PORTANTO ORDENAMOS POR ELE
+                                float available = (d.Date.DayNumber - crrDate.DayNumber) * (SHIFTS - j);
+                                float needed = d.Quantity * d.Product.Time / 60.0f / SHIFTS;
+                                return (float)(available / needed);
+                            }
+                        )
+                    .ToList();
+
+                    if (greedy.Count == 0)
+                        return Schedule;
                     //---------------------LOG-
                     Cell c = cells[k];
                     Console.Write($"{"[" + c.Name + "] -> ",-10}");
@@ -63,26 +76,31 @@ public static class Algorithm
                     //--------------------LOG-
 
                     List<Product> products = [];
-                    Product product = it.Current.Product;
+                    int clogged = greedy.First().Product.Time;
+                    Demand? crrDemand = greedy.First();
                     //LOOP - (LADOS DE PRODUÇÃO)
                     for (int l = 0; l < CORES_PER_CELL; l++)
                     {
                         //CALCULA QUANTAS PEÇAS VAO SER PRODUZIDAS DURANTE ESSE TURNO
-                        int produced = (int)(HOURS_PER_SHIFT_OEE / (it.Current.Product.Time / 60.0f));
+                        int produced = (int)(HOURS_PER_SHIFT_OEE*60 / clogged);
                         //SUBTRAI A PRODUÇÃO DA NECESSIDADE DA DEMANDA PARA O PROXIMO TURNO CONSIDERAR SÓ O QUE FALTA
-                        it.Current.Quantity -= produced;
-                        products.Add(it.Current.Product);
+                        crrDemand.Quantity -= produced;
+                        products.Add(crrDemand.Product);
 
                         //--------------------LOG-
-                        str += it.Current.Product.Name + " ";
+                        str += crrDemand.Product.Name + " ";
                         //--------------------LOG-
 
                         //SE ACABOU A QUANTIDADE NECESSARIA DESSA DEMANDA AVANÇA PRA PRÓXIMA
-                        if (it.Current.Quantity <= 0)
+                        if (crrDemand.Quantity <= 0)
                         {
-                            it.MoveNext(); // SEGUE PRA PROXIMA PRIORIDADE
-                            if (it.Current == null) //VALIDA SE ACABOU AS DEMANDAS
-                                return Schedule;
+                            crrDemand = greedy
+                                .Where(g => g.Quantity > 0)
+                                .Where(g => g.Product.Time <= crrDemand.Product.Time)
+                                .FirstOrDefault();
+
+                            if (crrDemand == null)
+                                break;
                         }
                     }
 
