@@ -1,13 +1,15 @@
 using Alg.DTO;
+using Alg.Enums;
 using Alg.Models;
 
 public static class Algorithm
 {
-    public const float OEE = 0.85f;
-    public const int SHIFTS = 3;
-    public const int HOUR_PER_SHIFT = 8;
-    public const int CORES_PER_CELL = 2;
-    public const float HOURS_PER_SHIFT_OEE = HOUR_PER_SHIFT * OEE;
+    private const UnitOfMeasure UOM = UnitOfMeasure.MINUTE; 
+    private const int HOUR_PER_SHIFT = 8;
+    private const float OEE = 0.85f;
+    private const float HOURS_PER_SHIFT_OEE = HOUR_PER_SHIFT * OEE;
+    private const int SHIFTS = 3;
+    private const int CORES_PER_CELL = 2;
 
 
     public static List<Day> solver(List<Demand> demands, List<Cell> cells)
@@ -34,22 +36,6 @@ public static class Algorithm
                 //---------------------LOG-
 
                 List<Cell> shiftSetup = [];
-
-                // //ORDENA POR PRIORIDADE DAS DEMANDAS NESSE TURNO EM QUESTÃO
-                // var greedy = demands
-                //     .Where(d => d.Quantity > 0)
-                //     .OrderBy(d =>
-                //         {
-                //             //CALCULA O "CRITICAL RATIO", QUANTO MENOR MAIS URGENTE, PORTANTO ORDENAMOS POR ELE
-                //             float available = (d.Date.DayNumber - crrDate.DayNumber) * (SHIFTS - j);
-                //             float needed = d.Quantity * d.Product.Time / 60.0f / SHIFTS;
-                //             return (float)(available / needed);
-                //         }
-                //     )
-                // .ToList();
-
-                // if (!greedy.Any())
-                //     return Schedule;
 
                 //LOOP - (CELULAS)
                 for (int k = 0; k < cells.Count; k++)
@@ -82,7 +68,7 @@ public static class Algorithm
                     for (int l = 0; l < CORES_PER_CELL; l++)
                     {
                         //CALCULA QUANTAS PEÇAS VAO SER PRODUZIDAS DURANTE ESSE TURNO
-                        int produced = (int)(HOURS_PER_SHIFT_OEE*60 / clogged);
+                        int produced = (int)(HOURS_PER_SHIFT_OEE * (int)UOM / clogged);
                         //SUBTRAI A PRODUÇÃO DA NECESSIDADE DA DEMANDA PARA O PROXIMO TURNO CONSIDERAR SÓ O QUE FALTA
                         crrDemand.Quantity -= produced;
                         products.Add(crrDemand.Product);
