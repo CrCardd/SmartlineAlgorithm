@@ -54,7 +54,7 @@ public static class Algorithm
                 //LOOP - (CELULAS)
                 for (int k = 0; k < cells.Count; k++)
                 {
-                    //ORDENA POR PRIORIDADE DAS DEMANDAS NESSE TURNO EM QUESTÃO
+                    //ORDENA POR PRIORIDADE DAS DEMANDAS NESSE TURNA NESSA MAQUINA, PARA ATUALIZARMOS CONFORME A PRODUÇÃO
                     var greedy = demands
                         .Where(d => d.Quantity > 0)
                         .OrderBy(d =>
