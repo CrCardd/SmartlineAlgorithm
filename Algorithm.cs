@@ -1,3 +1,4 @@
+using Alg.DTO;
 using Alg.Models;
 
 public static class Algorithm
@@ -101,7 +102,7 @@ public static class Algorithm
             foreach (var d in demands)
                 Console.Write(d.Product.Name + ": " + d.Quantity + "    ");
             //--------------------LOG-
-            Schedule.Add(new Day(crrDate, setups));
+            Schedule.Add(new(crrDate, setups));
             crrDate = crrDate.AddDays(1);
         }
 

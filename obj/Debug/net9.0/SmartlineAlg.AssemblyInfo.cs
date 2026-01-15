@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SmartlineAlg")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d8ea536d64b18c679e2aea731710b642a2f1bc21")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7e85e1a5091c02b8accb0a474c7b7a6dd82a7bcd")]
 [assembly: System.Reflection.AssemblyProductAttribute("SmartlineAlg")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SmartlineAlg")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
