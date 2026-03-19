@@ -43,7 +43,7 @@ public static class Lodaer
 
             int qnt = int.Parse(items[3]);
 
-            Product? product = products.Where(p => p.Id == productId).FirstOrDefault();
+            Product? product = products.FirstOrDefault(p => p.Id == productId);
 
             if (product == null)
                 continue;
@@ -65,7 +65,7 @@ public static class Lodaer
             string name = items[1];
 
             machines.Add(
-                new(id, name, null)
+                new(id, name)
             );
         }
         return machines;

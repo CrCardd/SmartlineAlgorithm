@@ -2,7 +2,7 @@ using Alg.Models;
 
 namespace Alg.DTO;
 
-public record Day(
-    DateOnly date,
-    List<List<Cell>> setups
+public record DayPayload(
+    DateOnly Date,
+    List<LogPayload> Setups
 );

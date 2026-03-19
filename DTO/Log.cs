@@ -1,11 +1,17 @@
-using Alg.Enums;
-using Alg.Models;
 
 namespace Alg.DTO;
 
-public record Log(
-    Product Product,
-    DateOnly Deadline,
-    DateOnly DeliveredAt,
-    int DistanceDays
+public class LogPayload
+{
+    public List<CellPayload> Cells {get;set;} = [];
+}
+
+public class CellPayload(int id, string name){
+    public int Id {get;set;} = id;
+    public string Name {get;set;} = name;
+    public List<ProductPayload> Products {get;set;} = [];
+};
+public record ProductPayload(
+    int Id,
+    string Name
 );

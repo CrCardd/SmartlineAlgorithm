@@ -13,7 +13,24 @@ Demands = Demands
     .Where(d => d.Quantity > 0)
     .ToList();
 
-Algorithm.solver(Demands, Machines);
+var schedule = Algorithm.Solver(ref Demands, Machines);
+
+foreach(var day in schedule)
+{
+    Console.WriteLine(new string('-',120));
+    Console.WriteLine(day.Date);
+    for(int i=0; i<day.Setups.Count; i++)
+    {
+        Console.Write($"\t{i+1}\t|");
+        foreach(var cell in day.Setups[i].Cells)
+        {
+            Console.Write($"\t{cell.Name} -> ");
+            foreach(var product in cell.Products)
+                Console.Write($"[{product.Name}]");
+        }
+        Console.WriteLine();
+    }
+}
 
 //EXCEDENTE = PEÇAS PRODUZIDAS ALÉM DO NECESSÁRIO, SE ESTIVER NEGATIVO É PORQUE FALTOU PEÇA
 Console.WriteLine($"\n\n{"PRODUTO",-10} | {"EXCEDENTE",-18}");
