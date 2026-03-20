@@ -11,7 +11,7 @@ public abstract class Philosopher(List<Demand> crrDemands)
     #endregion
     #region METHODS
     public Demand? GetPriority
-        => PriorityId is null ? null : DinamicDemands.First(d => d.Id == PriorityId);
+        => PriorityId is null ? null : DinamicDemands.Any(d => d.Quantity > 0) ?  DinamicDemands.First(d => d.Id == PriorityId) : null;
     public int GetTime
         => Time;
     public void AddPriority(Demand demand)

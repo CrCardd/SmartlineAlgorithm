@@ -1,10 +1,11 @@
 ﻿using Alg.Philosophers;
 
-var schedule = Algorithm.Solver(d => new Aristoteles(d));
+var scheduleA = Algorithm.Solver(d => new Aristoteles(d));
+var scheduleP = Algorithm.Solver(d => new Plank(d));
 
 
 #region UI 
-
+/*
 foreach(var day in schedule.Days)
 {
     Console.WriteLine(new string('-',120));
@@ -21,9 +22,14 @@ foreach(var day in schedule.Days)
         Console.WriteLine();
     }
 }
+*/
 
 Console.WriteLine($"\n\n{"PRODUTO",-10} | {"EXCEDENTE",-18}");
-foreach (var d in schedule.Excess)
+foreach (var d in scheduleA.Excess)
+    Console.WriteLine($"{d.Product.Name,-10} | {d.Quantity*-1,-18:F2}");
+
+Console.WriteLine($"\n\n{"PRODUTO",-10} | {"EXCEDENTE",-18}");
+foreach (var d in scheduleP.Excess)
     Console.WriteLine($"{d.Product.Name,-10} | {d.Quantity*-1,-18:F2}");
 
 #endregion

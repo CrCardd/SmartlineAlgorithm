@@ -12,7 +12,7 @@ public static class Algorithm
     private const UnitOfMeasure SetupCoolDownUOM = UnitOfMeasure.SHIFT; 
     private const UnitOfMeasure ProduceTimeUOM = UnitOfMeasure.MINUTE; 
     private const int CORES_PER_CELL = 2;
-    private const int SETUP_COOLDOWN = 1;
+    private const int SETUP_COOLDOWN = 6;
     private const int SHIFTS = 3;
     private const int HOUR_PER_SHIFT = 8;
 
@@ -21,6 +21,8 @@ public static class Algorithm
     // Organize solver logs
     public static Schedule Solver<T>(Func<List<Demand>, T> factory) where T : Philosopher
     {
+        ctx = new("./database");
+
         DateOnly crrDate = DateOnly.FromDateTime(DateTime.Today);
         List<Demand> demands = ctx.Demands
             .Where(d => d.Quantity > 0)
@@ -90,7 +92,6 @@ public static class Algorithm
 
                 cell.Products.Add(new(priority.Product.Id, priority.Product.Name));
                 Produce(philosopher.GetDinamicDemands, priority, (SETUP_COOLDOWN*(int)SetupCoolDownUOM) / (philosopher.GetTime * (int)ProduceTimeUOM));
-                // priority.Quantity -= (SETUP_COOLDOWN*(int)SetupCoolDownUOM) / (philosopher.GetTime * (int)ProduceTimeUOM);
                 philosopher.AddPriority(priority);
             }
             foreach(var dd in philosopher.GetDinamicDemands)
