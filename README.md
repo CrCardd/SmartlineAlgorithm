@@ -27,13 +27,3 @@ The `Solver` function receives a decision strategy (philosopher) responsible for
   Minimizes excess production.  
   Attempts to closely match demand quantities, reducing overproduction at the cost of potentially less efficient batching.
 
-### Notes
-- The algorithm follows a **greedy heuristic**, making local decisions at each step.
-- Current implementation operates at the **demand level**, which may cause inefficiencies when multiple demands reference the same product.
-
-## !On going!
-
-- [ ] Dynamic cores per cell  
-- [ ] Dynamic unit of measure (setup cooldown & production time)  
-- [ ] Bottleneck ("gargalo") handling  
-- [ ] Additional decision strategies  
