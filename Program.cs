@@ -1,6 +1,6 @@
 ﻿using Alg.Philosophers;
 
-var schedule = Algorithm.Solver(d => new Plank(d));
+var schedule = Algorithm.Solver(d => new Aristoteles(d));
 
 
 

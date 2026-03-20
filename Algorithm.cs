@@ -23,9 +23,10 @@ public static class Algorithm
     {
         DateOnly crrDate = DateOnly.FromDateTime(DateTime.Today);
         List<Demand> demands = ctx.Demands
-            .Select(d => {d.Quantity -= d.Product.Shop; return d;})
             .Where(d => d.Quantity > 0)
+            .Where(d => d.Quantity - d.Product.Shop > 0)
             .ToList();
+        
         List<Cell> cells = ctx.Cells;
 
         List<LogPayload> Logs = [];
@@ -36,14 +37,14 @@ public static class Algorithm
         int step = 0;
         while(demands.Any(d => d.Quantity > 0))
         {
-            var log = Setup<T>(ref demands,cells, factory);
+            var log = Setup<T>(factory);
             for(int i=0; i<SETUP_COOLDOWN; i++)
             {
                 step++;
                 Logs.Add(log);
                 if(step >= gap)
                 {
-                    crrDate.AddDays(1);
+                    crrDate = crrDate.AddDays(1);
                     Schedule.Days.Add(new(crrDate, Logs));
 
                     Logs = [];
@@ -70,17 +71,16 @@ public static class Algorithm
 
     // Define the best setup of each cell
     public static LogPayload Setup<T>(
-        ref List<Demand> demands, 
-        List<Cell> cells,
         Func<List<Demand>, T> factory
     ) where T : Philosopher
     {
+        List<Cell> cells = ctx.Cells;
         LogPayload log = new();
 
         for(int i=0; i<cells.Count;i++)
         {
             CellPayload cell = new(cells[i].Id,cells[i].Name);
-            T philosopher = factory(demands);
+            T philosopher = factory(ctx.Demands);
             for(int j=0; j<CORES_PER_CELL; j++)
             {
                 philosopher.Think(cells);
@@ -89,10 +89,13 @@ public static class Algorithm
                 var priority = philosopher.GetPriority;
 
                 cell.Products.Add(new(priority.Product.Id, priority.Product.Name));
-                ctx.Demands.First(d => d.Id == priority.Id).Quantity -= (SETUP_COOLDOWN*(int)SetupCoolDownUOM) / (philosopher.GetTime * (int)ProduceTimeUOM);
+                Produce(philosopher.GetDinamicDemands, priority, (SETUP_COOLDOWN*(int)SetupCoolDownUOM) / (philosopher.GetTime * (int)ProduceTimeUOM));
+                // priority.Quantity -= (SETUP_COOLDOWN*(int)SetupCoolDownUOM) / (philosopher.GetTime * (int)ProduceTimeUOM);
                 philosopher.AddPriority(priority);
             }
-            demands = Copy(philosopher.GetDinamicDemands);
+            foreach(var dd in philosopher.GetDinamicDemands)
+                ctx.Demands.First(d => d.Id == dd.Id).Quantity = dd.Quantity;
+
             log.Cells.Add(cell);
             if(philosopher.GetPriority is null)
                 return log;
@@ -102,13 +105,31 @@ public static class Algorithm
     }
 
     // Fix the production to when the new product's time be overpass the last 
-    public static List<Demand> Fixes(List<Demand> demands, List<int> priorities, int time)
+    public static List<Demand> Fixes(List<int> priorities, int time)
     {
-        var copy = Copy(demands);
+        var copy = Copy(ctx.Demands);
         foreach(var priorityId in priorities)
-            copy.First(d => d.Id == priorityId).Quantity -= (SETUP_COOLDOWN*(int)SetupCoolDownUOM) / (time * (int)ProduceTimeUOM);
+            Produce(copy, copy.First(d => d.Id == priorityId), (SETUP_COOLDOWN*(int)SetupCoolDownUOM) / (time * (int)ProduceTimeUOM));
+            // copy.First(d => d.Id == priorityId).Quantity -= (SETUP_COOLDOWN*(int)SetupCoolDownUOM) / (time * (int)ProduceTimeUOM);
         return copy;
     }
+
+    public static void Produce(List<Demand> demands, Demand demand, int quantity)
+    {
+        demand.Quantity -= quantity;
+        // Console.WriteLine(demand.Quantity);
+        if(demand.Quantity < 0)
+        {
+            var excess = demands
+                .Where(d => d.Quantity > 0)
+                .FirstOrDefault(d => d.Product.Id == demand.Product.Id);
+            if(excess is not null)
+            {
+                Produce(demands, excess, -demand.Quantity);
+                demand.Quantity = 0;
+            }
+        }
+    } 
 
     // Get the best demand for the current moment - INCOMPLETE
     public static int? Logic(List<Demand> demands, List<Cell> cells, int? priorityId = null)

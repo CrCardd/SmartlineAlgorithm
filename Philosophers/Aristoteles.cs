@@ -2,7 +2,7 @@ using Alg.Models;
 
 namespace Alg.Philosophers;
 
-public class Aristoteles(List<Demand> frozenDemands) : Philosopher(frozenDemands)
+public class Aristoteles(List<Demand> crrDemands) : Philosopher(crrDemands)
 {
     // INCREASE EXCESS
     public override void Think(List<Cell> cells)
@@ -13,13 +13,13 @@ public class Aristoteles(List<Demand> frozenDemands) : Philosopher(frozenDemands
         if(DinamicDemands.First(d => d.Id == priorityIdTemp).Product.Time > timeTemp)
         {
             timeTemp = DinamicDemands.First(d => d.Id == priorityIdTemp).Product.Time;
-            DinamicDemands = Algorithm.Fixes(FrozenDemands, Priorities, timeTemp);
+            DinamicDemands = Algorithm.Fixes(Priorities, timeTemp);
             priorityIdTemp = Algorithm.Logic(DinamicDemands,cells,PriorityId);
             if(priorityIdTemp is null) return;
             if(DinamicDemands.First(d => d.Id == priorityIdTemp).Product.Time < timeTemp)
             {
                 timeTemp = DinamicDemands.First(d => d.Id == priorityIdTemp).Product.Time;
-                DinamicDemands = Algorithm.Fixes(FrozenDemands, Priorities, timeTemp);
+                DinamicDemands = Algorithm.Fixes(Priorities, timeTemp);
             }
         }
         Time = timeTemp;

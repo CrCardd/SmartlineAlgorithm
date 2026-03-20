@@ -1,10 +1,9 @@
 using Alg.Models;
 
-public abstract class Philosopher(List<Demand> frozenDemands)
+public abstract class Philosopher(List<Demand> crrDemands)
 {
     #region PROPERTIES
-    protected List<Demand> FrozenDemands = frozenDemands.Select(d => new Demand(d.Id, d.Product, d.Date, d.Quantity)).ToList();
-    protected List<Demand> DinamicDemands = frozenDemands.Select(d => new Demand(d.Id, d.Product, d.Date, d.Quantity)).ToList();
+    protected List<Demand> DinamicDemands = crrDemands.Select(d => new Demand(d.Id, d.Product, d.Date, d.Quantity)).ToList();
     protected List<int> Priorities = [];
     protected int? PriorityId = null;
     protected int Time = 0;

@@ -2,7 +2,7 @@ using Alg.Models;
 
 namespace Alg.Philosophers;
 
-public class Plank(List<Demand> frozenDemands) : Philosopher(frozenDemands)
+public class Plank(List<Demand> crrDemands) : Philosopher(crrDemands)
 {
     public override void Think(List<Cell> cells)
     {
@@ -12,7 +12,7 @@ public class Plank(List<Demand> frozenDemands) : Philosopher(frozenDemands)
         if(GetPriority!.Product.Time > Time)
         {
             Time = GetPriority.Product.Time;
-            DinamicDemands = Algorithm.Fixes(FrozenDemands, Priorities, Time);
+            DinamicDemands = Algorithm.Fixes(Priorities, Time);
             PriorityId = Algorithm.Logic(DinamicDemands,cells,PriorityId);
         }
     }
