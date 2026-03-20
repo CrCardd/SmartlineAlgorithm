@@ -1,21 +1,12 @@
-﻿using Alg.Models;
+﻿using Alg.Philosophers;
 
-List<Product> Products = Lodaer.GetProducts("./database/Product.csv");
-List<Demand> Demands = Lodaer.GetDemands("./database/Demand.csv", Products);
-List<Cell> Machines = Lodaer.GetCells("./database/Cell.csv");
+var schedule = Algorithm.Solver(d => new Plank(d));
 
-Demands = Demands
-    .Select(d =>
-    {
-            d.Quantity -= d.Product.Shop;
-            return d;
-    })
-    .Where(d => d.Quantity > 0)
-    .ToList();
 
-var schedule = Algorithm.Solver(ref Demands, Machines);
 
-foreach(var day in schedule)
+#region UI 
+
+foreach(var day in schedule.Days)
 {
     Console.WriteLine(new string('-',120));
     Console.WriteLine(day.Date);
@@ -32,7 +23,8 @@ foreach(var day in schedule)
     }
 }
 
-//EXCEDENTE = PEÇAS PRODUZIDAS ALÉM DO NECESSÁRIO, SE ESTIVER NEGATIVO É PORQUE FALTOU PEÇA
 Console.WriteLine($"\n\n{"PRODUTO",-10} | {"EXCEDENTE",-18}");
-foreach (var d in Demands)
+foreach (var d in schedule.Excess)
     Console.WriteLine($"{d.Product.Name,-10} | {d.Quantity*-1,-18:F2}");
+
+#endregion

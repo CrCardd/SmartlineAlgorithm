@@ -1,7 +1,18 @@
 namespace Alg.Models;
 
-public static class Lodaer
+public class Context
 {
+    public List<Product> Products {get;set;} = []; 
+    public List<Demand> Demands {get;set;} = []; 
+    public List<Cell> Cells {get;set;} = []; 
+
+    public Context(string path)
+    {
+        Products = GetProducts($"{path}/Product.csv");
+        Demands = GetDemands($"{path}/Demand.csv", Products);
+        Cells = GetCells($"{path}/Cell.csv");
+    }
+
     public static List<Product> GetProducts(string path)
     {
         string[] lines = File.ReadAllLines(path);

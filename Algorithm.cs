@@ -2,10 +2,13 @@ using Alg.DTO;
 using Alg.Enums;
 using Alg.Models;
 
+
+
 public static class Algorithm
 {
     #region PROPERTIES
 
+    private static Context ctx = new("./database");
     private const UnitOfMeasure SetupCoolDownUOM = UnitOfMeasure.SHIFT; 
     private const UnitOfMeasure ProduceTimeUOM = UnitOfMeasure.MINUTE; 
     private const int CORES_PER_CELL = 2;
@@ -16,18 +19,24 @@ public static class Algorithm
     #endregion
     #region FUNCTIONS
     // Organize solver logs
-    public static List<DayPayload> Solver(ref List<Demand> demands, List<Cell> cells)
+    public static Schedule Solver<T>(Func<List<Demand>, T> factory) where T : Philosopher
     {
         DateOnly crrDate = DateOnly.FromDateTime(DateTime.Today);
+        List<Demand> demands = ctx.Demands
+            .Select(d => {d.Quantity -= d.Product.Shop; return d;})
+            .Where(d => d.Quantity > 0)
+            .ToList();
+        List<Cell> cells = ctx.Cells;
+
         List<LogPayload> Logs = [];
-        List<DayPayload> Schedule = [];
+        Schedule Schedule = new();
         
         int gap = HOUR_PER_SHIFT*(int)UnitOfMeasure.HOUR*SHIFTS / (int)SetupCoolDownUOM;
-    
+
         int step = 0;
         while(demands.Any(d => d.Quantity > 0))
         {
-            var log = Setup(ref demands,cells);
+            var log = Setup<T>(ref demands,cells, factory);
             for(int i=0; i<SETUP_COOLDOWN; i++)
             {
                 step++;
@@ -35,7 +44,7 @@ public static class Algorithm
                 if(step >= gap)
                 {
                     crrDate.AddDays(1);
-                    Schedule.Add(new(crrDate, Logs));
+                    Schedule.Days.Add(new(crrDate, Logs));
 
                     Logs = [];
                     step = 0;
@@ -45,30 +54,42 @@ public static class Algorithm
         if(step != gap)
         {
             crrDate.AddDays(1);
-            Schedule.Add(new(crrDate, Logs));
+            Schedule.Days.Add(new(crrDate, Logs));
         }
+
+        Schedule.Excess = demands.GroupBy(d => d.Product.Id)
+            .Select(d => {
+                int quantity = d.Sum(a => a.Quantity);
+                Product find = ctx.Products.First(p => p.Id == d.Key);
+                ProductPayload product = new(find.Id, find.Name);
+                return new DemandPayload(product, quantity);
+        }).ToList();
 
         return Schedule;
     }
 
     // Define the best setup of each cell
-    public static LogPayload Setup(ref List<Demand> demands, List<Cell> cells)
+    public static LogPayload Setup<T>(
+        ref List<Demand> demands, 
+        List<Cell> cells,
+        Func<List<Demand>, T> factory
+    ) where T : Philosopher
     {
         LogPayload log = new();
 
         for(int i=0; i<cells.Count;i++)
         {
             CellPayload cell = new(cells[i].Id,cells[i].Name);
-            var philosopher = new Philosophers(demands);
+            T philosopher = factory(demands);
             for(int j=0; j<CORES_PER_CELL; j++)
             {
-                philosopher.Aristoteles(cells);
+                philosopher.Think(cells);
                 if(philosopher.GetPriority is null)
                     break;
                 var priority = philosopher.GetPriority;
 
                 cell.Products.Add(new(priority.Product.Id, priority.Product.Name));
-                priority.Quantity -= (SETUP_COOLDOWN*(int)SetupCoolDownUOM) / (philosopher.GetTime * (int)ProduceTimeUOM);
+                ctx.Demands.First(d => d.Id == priority.Id).Quantity -= (SETUP_COOLDOWN*(int)SetupCoolDownUOM) / (philosopher.GetTime * (int)ProduceTimeUOM);
                 philosopher.AddPriority(priority);
             }
             demands = Copy(philosopher.GetDinamicDemands);
@@ -89,7 +110,7 @@ public static class Algorithm
         return copy;
     }
 
-    // Get the best demand for the current moment
+    // Get the best demand for the current moment - INCOMPLETE
     public static int? Logic(List<Demand> demands, List<Cell> cells, int? priorityId = null)
     {
         var pending = demands
