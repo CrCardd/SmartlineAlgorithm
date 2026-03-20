@@ -3,7 +3,6 @@
 var schedule = Algorithm.Solver(d => new Aristoteles(d));
 
 
-
 #region UI 
 
 foreach(var day in schedule.Days)
